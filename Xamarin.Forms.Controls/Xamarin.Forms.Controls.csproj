@@ -92,6 +92,9 @@
     <EmbeddedResource Update="GalleryPages\RefreshViewGalleries\RefreshWebViewGallery.xaml">
       <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
     </EmbeddedResource>
+    <EmbeddedResource Update="GalleryPages\PageWithTransparentBkgnd.xaml">
+      <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
+    </EmbeddedResource>
     <EmbeddedResource Update="GalleryPages\TitleView.xaml">
       <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
     </EmbeddedResource>
