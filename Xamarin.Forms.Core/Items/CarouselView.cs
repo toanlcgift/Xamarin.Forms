@@ -26,7 +26,7 @@ namespace Xamarin.Forms
 			set { SetValue(PeekAreaInsetsProperty, value); }
 		}
 
-		static readonly BindablePropertyKey VisibleViewsPropertyKey = BindableProperty.CreateReadOnly(nameof(VisibleViews), typeof(List<View>), typeof(CarouselView), null);
+		static readonly BindablePropertyKey VisibleViewsPropertyKey = BindableProperty.CreateReadOnly(nameof(VisibleViews), typeof(List<View>), typeof(CarouselView), new List<View>());
 
 		public static readonly BindableProperty VisibleViewsProperty = VisibleViewsPropertyKey.BindableProperty;
 
@@ -231,7 +231,8 @@ namespace Xamarin.Forms
 			carousel.OnPositionChanged(args);
 		}
 
-		static object GetItemForPosition(CarouselView carouselView, int index)
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static object GetItemForPosition(CarouselView carouselView, int index)
 		{
 			if (!(carouselView?.ItemsSource is IList itemSource))
 				return null;
@@ -242,7 +243,8 @@ namespace Xamarin.Forms
 			return itemSource[index];
 		}
 
-		static int GetPositionForItem(CarouselView carouselView, object item)
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static int GetPositionForItem(CarouselView carouselView, object item)
 		{
 			var itemSource = carouselView?.ItemsSource as IList;
 
