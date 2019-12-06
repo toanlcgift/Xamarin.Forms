@@ -65,7 +65,7 @@ namespace Xamarin.Forms.Platform.Android
 		protected override void OnElementPropertyChanged(object sender, PropertyChangedEventArgs changedProperty)
 		{
 			base.OnElementPropertyChanged(sender, changedProperty);
-   
+
 			if (changedProperty.Is(FormsCarouselView.PeekAreaInsetsProperty))
 				UpdatePeekAreaInsets();
 			else if (changedProperty.Is(FormsCarouselView.IsSwipeEnabledProperty))
@@ -90,7 +90,7 @@ namespace Xamarin.Forms.Platform.Android
 
 			if (first == -1)
 				return;
-			
+
 			var newViews = new List<View>();
 			var carouselPosition = Carousel.Position;
 			var carouselCount = layoutManager.ItemCount;
@@ -117,7 +117,7 @@ namespace Xamarin.Forms.Platform.Android
 						var nextPos = i + 1;
 						var nextCell = layoutManager.FindViewByPosition(nextPos);
 						var nextItemView = (nextCell as ItemContentView)?.VisualElementRenderer?.Element as View;
-						if(nextItemView != null)
+						if (nextItemView != null)
 							VisualStateManager.GoToState(nextItemView, FormsCarouselView.NextItemVisualState);
 					}
 				}
@@ -243,7 +243,11 @@ namespace Xamarin.Forms.Platform.Android
 			var oldItemViewAdapter = ItemsViewAdapter;
 
 			ItemsViewAdapter = new ItemsViewAdapter<ItemsView, IItemsViewSource>(ItemsView,
-				(view, context) => new SizedItemContentView(Context, GetItemWidth, GetItemHeight));
+				(view, context) =>
+				{
+					VisualStateManager.GoToState(view, FormsCarouselView.DefaultItemVisualState);
+					return new SizedItemContentView(Context, GetItemWidth, GetItemHeight);
+				});
 
 			SwapAdapter(ItemsViewAdapter, false);
 
