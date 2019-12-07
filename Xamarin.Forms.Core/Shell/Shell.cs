@@ -25,6 +25,17 @@ namespace Xamarin.Forms
 				SetInheritedBindingContext(newHandlerBehavior, bindable.BindingContext);
 		}
 
+		public static readonly BindableProperty ModalBehaviorProperty =
+			BindableProperty.CreateAttached("ModalBehavior", typeof(ModalBehavior), typeof(Shell), null, BindingMode.OneTime, propertyChanged: OnModalBehaviorPropertyChanged);
+
+		static void OnModalBehaviorPropertyChanged(BindableObject bindable, object oldValue, object newValue)
+		{
+			if (oldValue is ModalBehavior oldHandlerBehavior)
+				SetInheritedBindingContext(oldHandlerBehavior, null);
+			if (newValue is ModalBehavior newHandlerBehavior)
+				SetInheritedBindingContext(newHandlerBehavior, bindable.BindingContext);
+		}
+
 		public static readonly BindableProperty FlyoutBehaviorProperty =
 			BindableProperty.CreateAttached("FlyoutBehavior", typeof(FlyoutBehavior), typeof(Shell), FlyoutBehavior.Flyout,
 				propertyChanged: OnFlyoutBehaviorChanged);
@@ -68,6 +79,9 @@ namespace Xamarin.Forms
 
 		public static BackButtonBehavior GetBackButtonBehavior(BindableObject obj) => (BackButtonBehavior)obj.GetValue(BackButtonBehaviorProperty);
 		public static void SetBackButtonBehavior(BindableObject obj, BackButtonBehavior behavior) => obj.SetValue(BackButtonBehaviorProperty, behavior);
+
+		public static ModalBehavior GetModalBehavior(BindableObject obj) => (ModalBehavior)obj.GetValue(ModalBehaviorProperty);
+		public static void SetModalBehavior(BindableObject obj, ModalBehavior behavior) => obj.SetValue(ModalBehaviorProperty, behavior);
 
 		public static FlyoutBehavior GetFlyoutBehavior(BindableObject obj) => (FlyoutBehavior)obj.GetValue(FlyoutBehaviorProperty);
 		public static void SetFlyoutBehavior(BindableObject obj, FlyoutBehavior value) => obj.SetValue(FlyoutBehaviorProperty, value);
@@ -216,7 +230,7 @@ namespace Xamarin.Forms
 
 			// We need to wait until the visible page has been created before we try to calculate
 			// the flyout behavior
-			if(GetVisiblePage() != null)
+			if (GetVisiblePage() != null)
 				observer.OnFlyoutBehaviorChanged(GetEffectiveFlyoutBehavior());
 		}
 
@@ -408,11 +422,14 @@ namespace Xamarin.Forms
 
 			var shellItem = navigationRequest.Request.Item;
 			var shellSection = navigationRequest.Request.Section;
+			var currentShellSection = CurrentItem?.CurrentItem;
+
 			ShellContent shellContent = navigationRequest.Request.Content;
 
 			if (shellItem != null)
 			{
 				ApplyQueryAttributes(shellItem, queryData, navigationRequest.Request.Section == null);
+				bool navigatedToNewShellElement = false;
 
 				if (shellSection != null && shellContent != null)
 				{
@@ -420,6 +437,7 @@ namespace Xamarin.Forms
 					if (shellSection.CurrentItem != shellContent)
 					{
 						shellSection.SetValueFromRenderer(ShellSection.CurrentItemProperty, shellContent);
+						navigatedToNewShellElement = true;
 					}
 				}
 
@@ -429,12 +447,22 @@ namespace Xamarin.Forms
 					if (shellItem.CurrentItem != shellSection)
 					{
 						shellItem.SetValueFromRenderer(ShellItem.CurrentItemProperty, shellSection);
+						navigatedToNewShellElement = true;
 					}
 				}
 
 				if (CurrentItem != shellItem)
 				{
 					SetValueFromRenderer(CurrentItemProperty, shellItem);
+					navigatedToNewShellElement = true;
+				}
+
+				if (currentShellSection != null && navigatedToNewShellElement)
+				{
+					for (int i = 0; i < currentShellSection.Navigation.ModalStack.Count; i++)
+					{
+						await currentShellSection.Navigation.PopModalAsync();
+					}
 				}
 
 				if (navigationRequest.Request.GlobalRoutes.Count > 0)
@@ -760,7 +788,7 @@ namespace Xamarin.Forms
 						}
 						else
 						{
-							if(!(shellSection.Parent is TabBar))
+							if (!(shellSection.Parent is TabBar))
 								currentGroup.Add(shellSection);
 
 							// If we have only a single child we will also show the items menu items

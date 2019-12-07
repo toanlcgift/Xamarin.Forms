@@ -465,6 +465,13 @@ namespace Xamarin.Forms
 
 		protected virtual Task OnPushAsync(Page page, bool animated)
 		{
+			var modalBehavior = Shell.GetModalBehavior(page);
+
+			if(modalBehavior?.Modal == true)
+			{
+				return Navigation.PushModalAsync(page, modalBehavior.Animated);				
+			}
+
 			List<Page> stack = _navStack.ToList();
 			stack.Add(page);
 			var allow = ((IShellController)Shell).ProposeNavigation(
