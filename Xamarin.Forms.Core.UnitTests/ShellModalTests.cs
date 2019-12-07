@@ -76,28 +76,61 @@ namespace Xamarin.Forms.Core.UnitTests
 			Assert.AreEqual(0, navStack.ModalStack.Count);
 		}
 
+		[Test]
+		public async Task ModalPopsWhenNavigatingWithoutModalRoute()
+		{
+			Shell shell = new Shell();
+			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute"));
+
+			// pushes modal onto visible shell section
+			await shell.GoToAsync("ModalTestPage");
+
+			// Navigates to different Shell Item
+			await shell.GoToAsync("///NewRoute");
+
+			var navStack = shell.Items[0].Items[0].Navigation;
+			Assert.AreEqual(0, navStack.ModalStack.Count);
+		}
+
+
+		[Test]
+		public async Task ModalPopsWhenNavigatingToNewModalRoute()
+		{
+			Shell shell = new Shell();
+			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute"));
+
+			// pushes modal onto visible shell section
+			await shell.GoToAsync("ModalTestPage");
+
+			// Navigates to different Shell Item
+			await shell.GoToAsync("///NewRoute/ModalTestPage2");
+
+			var navStack = shell.Items[0].Items[0].Navigation;
+			Assert.AreEqual(1, navStack.ModalStack.Count);
+			Assert.AreEqual(typeof(ModalTestPage2), navStack.ModalStack[0].GetType());
+		}
+
 		public class ModalTestPage : ContentPage
 		{
-			public DateTimeOffset DateOfAppearing { get; set; }
-			
-
-			protected override void OnAppearing()
-			{
-				base.OnAppearing();
-				DateOfAppearing = DateTimeOffset.Now;
-			}
-
 			public ModalTestPage()
 			{
 				Shell.SetModalBehavior(this, new ModalBehavior() { Modal = true });
 			}
 		}
 
+		public class ModalTestPage2 : ContentPage
+		{
+			public ModalTestPage2()
+			{
+				Shell.SetModalBehavior(this, new ModalBehavior() { Modal = true });
+			}
+		}
 
 		public override void Setup()
 		{
 			base.Setup();
 			Routing.RegisterRoute("ModalTestPage", typeof(ModalTestPage));
+			Routing.RegisterRoute("ModalTestPage2", typeof(ModalTestPage));
 		}
 	}
 }

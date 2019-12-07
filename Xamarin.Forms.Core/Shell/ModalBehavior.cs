@@ -7,10 +7,10 @@ namespace Xamarin.Forms
 	public class ModalBehavior : BindableObject
 	{
 		public static readonly BindableProperty ModalProperty =
-			BindableProperty.Create(nameof(Modal), typeof(bool), typeof(ModalBehavior));
+			BindableProperty.Create(nameof(Modal), typeof(bool), typeof(ModalBehavior), true);
 
 		public static readonly BindableProperty AnimatedProperty =
-			BindableProperty.Create(nameof(Animated), typeof(bool), typeof(ModalBehavior), true);
+			BindableProperty.Create(nameof(Animated), typeof(bool), typeof(ModalBehavior), false);
 
 		public bool Modal
 		{

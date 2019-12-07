@@ -457,11 +457,16 @@ namespace Xamarin.Forms
 					navigatedToNewShellElement = true;
 				}
 
-				if (currentShellSection != null && navigatedToNewShellElement)
+				if (currentShellSection?.Navigation.ModalStack.Count > 0)
 				{
-					for (int i = 0; i < currentShellSection.Navigation.ModalStack.Count; i++)
+					// - navigating to new shell element so just pop everything
+					// - or route contains no global route requests
+					if (navigatedToNewShellElement || navigationRequest.Request.GlobalRoutes.Count == 0)
 					{
-						await currentShellSection.Navigation.PopModalAsync();
+						for (int i = 0; i < currentShellSection.Navigation.ModalStack.Count; i++)
+						{
+							await currentShellSection.Navigation.PopModalAsync();
+						}
 					}
 				}
 
