@@ -41,6 +41,7 @@ namespace Xamarin.Forms.Platform.Android
 		{
 			Carousel = newElement as FormsCarouselView;
 
+			Carousel.Scrolled += CarouselScrolled;
 			base.SetUpNewElement(newElement);
 
 			if (newElement == null)
@@ -49,6 +50,12 @@ namespace Xamarin.Forms.Platform.Android
 			UpdateIsSwipeEnabled();
 			UpdateInitialPosition();
 			UpdateItemSpacing();
+		}
+
+		protected override void TearDownOldElement(ItemsView oldElement)
+		{
+			base.TearDownOldElement(oldElement);
+			Carousel.Scrolled -= CarouselScrolled;
 		}
 
 		protected override void UpdateItemsSource()
@@ -143,6 +150,22 @@ namespace Xamarin.Forms.Platform.Android
 			return Carousel.ItemsLayout;
 		}
 
+		protected override void UpdateAdapter()
+		{
+			// By default the CollectionViewAdapter creates the items at whatever size the template calls for
+			// But for the Carousel, we want it to create the items to fit the width/height of the viewport
+			// So we give it an alternate delegate for creating the views
+
+			var oldItemViewAdapter = ItemsViewAdapter;
+
+			ItemsViewAdapter = new ItemsViewAdapter<ItemsView, IItemsViewSource>(ItemsView,
+				(view, context) => new SizedItemContentView(Context, GetItemWidth, GetItemHeight));
+
+			SwapAdapter(ItemsViewAdapter, false);
+
+			oldItemViewAdapter?.Dispose();
+		}
+
 		int GetItemWidth()
 		{
 			var itemWidth = Width;
@@ -182,20 +205,9 @@ namespace Xamarin.Forms.Platform.Android
 			UpdateAdapter();
 		}
 
-		protected override void UpdateAdapter()
+		void CarouselScrolled(object sender, ItemsViewScrolledEventArgs e)
 		{
-			// By default the CollectionViewAdapter creates the items at whatever size the template calls for
-			// But for the Carousel, we want it to create the items to fit the width/height of the viewport
-			// So we give it an alternate delegate for creating the views
-
-			var oldItemViewAdapter = ItemsViewAdapter;
-
-			ItemsViewAdapter = new ItemsViewAdapter<ItemsView, IItemsViewSource>(ItemsView,
-				(view, context) => new SizedItemContentView(Context, GetItemWidth, GetItemHeight));
-
-			SwapAdapter(ItemsViewAdapter, false);
-
-			oldItemViewAdapter?.Dispose();
+			UpdateVisualStates();
 		}
 
 		void UpdateInitialPosition()
@@ -220,7 +232,10 @@ namespace Xamarin.Forms.Platform.Android
 
 			var newViews = new List<View>();
 			var carouselPosition = Carousel.Position;
-			var carouselCount = layoutManager.ItemCount;
+			var previousPosition = carouselPosition - 1;
+			var nextPosition = carouselPosition + 1;
+
+			System.Diagnostics.Debug.WriteLine($"{first} - {last} - position {carouselPosition}");
 
 			for (int i = first; i <= last; i++)
 			{
@@ -230,32 +245,28 @@ namespace Xamarin.Forms.Platform.Android
 				if (i == carouselPosition)
 				{
 					VisualStateManager.GoToState(itemView, FormsCarouselView.CurrentItemVisualState);
-
-					if (i > 0)
-					{
-						var previousPos = i - 1;
-						var prevCell = layoutManager.FindViewByPosition(previousPos);
-						var prevItemView = (prevCell as ItemContentView)?.VisualElementRenderer?.Element as View;
-						if (prevItemView != null)
-							VisualStateManager.GoToState(prevItemView, FormsCarouselView.PreviousItemVisualState);
-					}
-					if (i < carouselCount)
-					{
-						var nextPos = i + 1;
-						var nextCell = layoutManager.FindViewByPosition(nextPos);
-						var nextItemView = (nextCell as ItemContentView)?.VisualElementRenderer?.Element as View;
-						if (nextItemView != null)
-							VisualStateManager.GoToState(nextItemView, FormsCarouselView.NextItemVisualState);
-					}
 				}
+				else if (i == previousPosition)
+				{
+					VisualStateManager.GoToState(itemView, FormsCarouselView.PreviousItemVisualState);
+				}
+				else if (i == nextPosition)
+				{
+					VisualStateManager.GoToState(itemView, FormsCarouselView.NextItemVisualState);
+				}
+				else
+				{
+					VisualStateManager.GoToState(itemView, FormsCarouselView.DefaultItemVisualState);
+				}
+
 				newViews.Add(itemView);
 			}
 
-			foreach (var item in _oldViews)
+			foreach (var itemView in _oldViews)
 			{
-				if (!newViews.Contains(item))
+				if (!newViews.Contains(itemView))
 				{
-					VisualStateManager.GoToState(item, FormsCarouselView.DefaultItemVisualState);
+					VisualStateManager.GoToState(itemView, FormsCarouselView.DefaultItemVisualState);
 				}
 			}
 
