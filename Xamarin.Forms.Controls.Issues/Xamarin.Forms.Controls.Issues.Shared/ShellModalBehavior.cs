@@ -41,7 +41,7 @@ namespace Xamarin.Forms.Controls.Issues
 							Text = "Push Modal",
 							Command = new Command(() =>
 							{
-								GoToAsync("ShellModalBehavior");
+								GoToAsync(nameof(ShellModalBehavior));
 							})
 						},
 						new Button()
@@ -60,8 +60,17 @@ namespace Xamarin.Forms.Controls.Issues
 		}
 
 		[Preserve(AllMembers = true)]
+		[QueryProperty("IsModal", "IsModal")]
 		public class ModalTestPage : ContentPage
 		{
+			public string IsModal
+			{
+				set
+				{
+					Shell.GetModalBehavior(this).Modal = Convert.ToBoolean(value);
+				}
+			}
+
 			public ModalTestPage()
 			{
 				Shell.SetModalBehavior(this, new ModalBehavior());
@@ -77,9 +86,25 @@ namespace Xamarin.Forms.Controls.Issues
 						new Button()
 						{
 							Text = "Clicking me should go back to the MainContent Page",
-							Command = new Command(() =>
+							Command = new Command(async () =>
 							{
-								Shell.Current.GoToAsync("//MainContent");
+								await Shell.Current.GoToAsync("//MainContent");
+							})
+						},
+						new Button()
+						{
+							Text = "Push Another Modal Page",
+							Command = new Command(async () =>
+							{
+								await Shell.Current.GoToAsync($"{nameof(ShellModalBehavior)}?IsModal=true");
+							})
+						},
+						new Button()
+						{
+							Text = "Push a Content Page Onto Previous Modal Page",
+							Command = new Command(async () =>
+							{
+								await Shell.Current.GoToAsync($"{nameof(ShellModalBehavior)}?IsModal=false");
 							})
 						}
 					}

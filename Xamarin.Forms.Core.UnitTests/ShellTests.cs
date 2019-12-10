@@ -466,7 +466,7 @@ namespace Xamarin.Forms.Core.UnitTests
 		{
 			var page = new ContentPage();
 
-			Assert.IsNull(Shell.GetModalBehavior(page));
+			Assert.IsNotNull(Shell.GetModalBehavior(page));
 
 			var modalBehavior = new ModalBehavior();
 

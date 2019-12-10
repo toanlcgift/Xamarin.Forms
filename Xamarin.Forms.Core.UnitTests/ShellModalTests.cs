@@ -11,6 +11,16 @@ namespace Xamarin.Forms.Core.UnitTests
 	public class ShellModalTests : ShellTestBase
 	{
 		[Test]
+		public async Task ModalBehaviorNeverNullTests()
+		{
+			ContentPage page = new ContentPage();
+			Assert.IsNotNull(Shell.GetModalBehavior(page));
+			Shell.SetModalBehavior(page, null);
+			Assert.IsNotNull(Shell.GetModalBehavior(page));
+		}
+
+
+		[Test]
 		public async Task BasicModalBehaviorTest()
 		{
 			Shell shell = new Shell();
@@ -21,7 +31,7 @@ namespace Xamarin.Forms.Core.UnitTests
 			var navStack = shell.Items[0].Items[0].Navigation;
 
 			Assert.AreEqual(1, navStack.ModalStack.Count);
-			Assert.AreEqual(typeof(ModalTestPage), navStack.ModalStack[0].GetType());
+			Assert.AreEqual(typeof(ModalTestPage), navStack.ModalStack[0].Navigation.NavigationStack[0].GetType());
 		}
 
 
@@ -107,7 +117,114 @@ namespace Xamarin.Forms.Core.UnitTests
 
 			var navStack = shell.Items[0].Items[0].Navigation;
 			Assert.AreEqual(1, navStack.ModalStack.Count);
-			Assert.AreEqual(typeof(ModalTestPage2), navStack.ModalStack[0].GetType());
+			Assert.AreEqual(typeof(ModalTestPage2), navStack.ModalStack[0].Navigation.NavigationStack[0].GetType());
+		}
+
+		[Test]
+		public async Task PagesPushToModalStack()
+		{
+			Routing.RegisterRoute("ContentPage", typeof(ContentPage));
+			Shell shell = new Shell();
+			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute", shellSectionRoute:"Section", shellContentRoute:"Content"));
+
+			await shell.GoToAsync("ModalTestPage/ContentPage");
+
+			var navStack = shell.Items[0].Items[0].Navigation;
+			Assert.AreEqual(typeof(ModalTestPage), navStack.ModalStack[0].Navigation.NavigationStack[0].GetType());
+			Assert.AreEqual(typeof(ContentPage), navStack.ModalStack[0].Navigation.NavigationStack[1].GetType());
+
+			Assert.AreEqual("//NewRoute/Section/Content/ModalTestPage/ContentPage", shell.CurrentState.Location.ToString());
+		}
+
+		[Test]
+		public async Task MultipleModalStacks()
+		{
+			Routing.RegisterRoute("ContentPage", typeof(ContentPage));
+			Shell shell = new Shell();
+			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute", shellSectionRoute: "Section", shellContentRoute: "Content"));
+
+			await shell.GoToAsync("ModalTestPage/ModalTestPage2/ContentPage");
+
+			var navStack = shell.Items[0].Items[0].Navigation;
+			Assert.AreEqual(typeof(ModalTestPage), navStack.ModalStack[0].Navigation.NavigationStack[0].GetType());
+			Assert.AreEqual(typeof(ModalTestPage2), navStack.ModalStack[1].Navigation.NavigationStack[0].GetType());
+			Assert.AreEqual(typeof(ContentPage), navStack.ModalStack[1].Navigation.NavigationStack[1].GetType());
+
+			Assert.AreEqual("//NewRoute/Section/Content/ModalTestPage/ModalTestPage2/ContentPage", shell.CurrentState.Location.ToString());
+		}
+
+		[Test]
+		public async Task MultipleModalStacksWithContentPageAlreadyPushed()
+		{
+			Routing.RegisterRoute("ContentPage", typeof(ContentPage));
+			Shell shell = new Shell();
+			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute", shellSectionRoute: "Section", shellContentRoute: "Content"));
+
+			await shell.GoToAsync("ContentPage/ModalTestPage/ContentPage/ModalTestPage2/ContentPage");
+			Assert.AreEqual("//NewRoute/Section/Content/ContentPage/ModalTestPage/ContentPage/ModalTestPage2/ContentPage", shell.CurrentState.Location.ToString());
+		}
+
+
+		[Test]
+		public async Task SwitchingModalStackAbsoluteNavigation()
+		{
+			Routing.RegisterRoute("ContentPage", typeof(ContentPage));
+			Shell shell = new Shell();
+			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute", shellSectionRoute: "Section", shellContentRoute: "Content"));
+
+			await shell.GoToAsync("ModalTestPage/ContentPage/ModalTestPage2/ContentPage");
+			await shell.GoToAsync("//NewRoute/ModalTestPage2/ContentPage");
+
+			Assert.AreEqual("//NewRoute/Section/Content/ModalTestPage2/ContentPage", shell.CurrentState.Location.ToString());
+		}
+
+		[Test]
+		public async Task PushingNonNavigationPage()
+		{
+			Shell shell = new Shell();
+			Routing.RegisterRoute("ContentPage", typeof(ContentPage));
+			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute", shellSectionRoute: "Section", shellContentRoute: "Content"));
+
+			await shell.GoToAsync("//NewRoute/SomeCustomPage/ModalTestPage/ContentPage");
+
+			Assert.AreEqual("//NewRoute/Section/Content/SomeCustomPage/ModalTestPage/ContentPage", shell.CurrentState.Location.ToString());
+		}
+
+
+		[Test]
+		public async Task PushingMultipleVersionsOfTheModalRoute()
+		{
+			Shell shell = new Shell();
+			Routing.RegisterRoute("ContentPage", typeof(ContentPage));
+			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute", shellSectionRoute: "Section", shellContentRoute: "Content"));
+
+			await shell.GoToAsync("ModalTestPage");
+			await shell.GoToAsync("ModalTestPage");
+
+			Assert.AreEqual("//NewRoute/Section/Content/ModalTestPage/ModalTestPage", shell.CurrentState.Location.ToString());
+		}
+
+		[Test]
+		public async Task PushingContentPageToNonNavigationPageThrowsException()
+		{
+			Shell shell = new Shell();
+			Routing.RegisterRoute("ContentPage", typeof(ContentPage));
+			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute", shellSectionRoute: "Section", shellContentRoute: "Content"));
+
+			bool invalidOperationThrown = true;
+			Device.PlatformServices = new MockPlatformServices(invokeOnMainThread: (action) =>
+			{
+				try
+				{
+					action();
+				}
+				catch(InvalidOperationException) 
+				{
+					invalidOperationThrown = true;
+				}
+			});
+
+			Assert.IsTrue(invalidOperationThrown);
 		}
 
 		public class ModalTestPage : ContentPage
@@ -126,11 +243,20 @@ namespace Xamarin.Forms.Core.UnitTests
 			}
 		}
 
+		public class SomeCustomPage : Page
+		{
+			public SomeCustomPage()
+			{
+				Shell.SetModalBehavior(this, new ModalBehavior() { Modal = true });
+			}
+		}
+
 		public override void Setup()
 		{
 			base.Setup();
 			Routing.RegisterRoute("ModalTestPage", typeof(ModalTestPage));
-			Routing.RegisterRoute("ModalTestPage2", typeof(ModalTestPage));
+			Routing.RegisterRoute("ModalTestPage2", typeof(ModalTestPage2));
+			Routing.RegisterRoute("SomeCustomPage", typeof(SomeCustomPage));
 		}
 	}
 }

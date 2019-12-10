@@ -23,5 +23,7 @@ namespace Xamarin.Forms
 			get => (bool)GetValue(AnimatedProperty);
 			set => SetValue(AnimatedProperty, value);
 		}
+
+		internal static ModalBehavior CreateDefault() => new ModalBehavior() { Modal = false };
 	}
 }

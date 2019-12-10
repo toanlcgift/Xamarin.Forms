@@ -26,7 +26,15 @@ namespace Xamarin.Forms
 		}
 
 		public static readonly BindableProperty ModalBehaviorProperty =
-			BindableProperty.CreateAttached("ModalBehavior", typeof(ModalBehavior), typeof(Shell), null, BindingMode.OneTime, propertyChanged: OnModalBehaviorPropertyChanged);
+			BindableProperty.CreateAttached("ModalBehavior", typeof(ModalBehavior), typeof(Shell), ModalBehavior.CreateDefault(), BindingMode.OneTime, propertyChanged: OnModalBehaviorPropertyChanged, coerceValue: OnCoerceModalBehaviorProperty);
+
+		static object OnCoerceModalBehaviorProperty(BindableObject bindable, object value)
+		{
+			if (value == null)
+				return ModalBehavior.CreateDefault();
+
+			return value;
+		}
 
 		static void OnModalBehaviorPropertyChanged(BindableObject bindable, object oldValue, object newValue)
 		{
@@ -282,7 +290,7 @@ namespace Xamarin.Forms
 		}
 
 		ShellNavigationState IShellController.GetNavigationState(ShellItem shellItem, ShellSection shellSection, ShellContent shellContent, bool includeStack)
-			=> GetNavigationState(shellItem, shellSection, shellContent, includeStack ? shellSection.Stack.ToList() : null);
+			=> GetNavigationState(shellItem, shellSection, shellContent, includeStack ? shellSection.Stack.ToList() : null, includeStack ? shellSection.Navigation.ModalStack.ToList() : null);
 
 		async void IShellController.OnFlyoutItemSelected(Element element)
 		{
@@ -323,7 +331,7 @@ namespace Xamarin.Forms
 			shellSection = shellSection ?? shellItem.CurrentItem;
 			shellContent = shellContent ?? shellSection?.CurrentItem;
 
-			var state = GetNavigationState(shellItem, shellSection, shellContent, null);
+			var state = GetNavigationState(shellItem, shellSection, shellContent, null, null);
 
 			if (FlyoutIsPresented && FlyoutBehavior == FlyoutBehavior.Flyout)
 				SetValueFromRenderer(FlyoutIsPresentedProperty, false);
@@ -333,7 +341,8 @@ namespace Xamarin.Forms
 
 		bool IShellController.ProposeNavigation(ShellNavigationSource source, ShellItem shellItem, ShellSection shellSection, ShellContent shellContent, IReadOnlyList<Page> stack, bool canCancel)
 		{
-			var proposedState = GetNavigationState(shellItem, shellSection, shellContent, stack);
+			var proposedState = GetNavigationState(shellItem, shellSection, shellContent, stack, shellSection.Navigation.ModalStack);
+			;
 			return ProposeNavigation(source, proposedState, canCancel);
 		}
 
@@ -360,7 +369,8 @@ namespace Xamarin.Forms
 			var shellSection = shellItem?.CurrentItem;
 			var shellContent = shellSection?.CurrentItem;
 			var stack = shellSection?.Stack;
-			var result = GetNavigationState(shellItem, shellSection, shellContent, stack);
+			var modalStack = shellSection?.Navigation?.ModalStack;
+			var result = GetNavigationState(shellItem, shellSection, shellContent, stack, modalStack);
 
 			SetValueFromRenderer(CurrentStatePropertyKey, result);
 
@@ -534,7 +544,7 @@ namespace Xamarin.Forms
 				element.SetValue(ShellContent.QueryAttributesProperty, query);
 		}
 
-		ShellNavigationState GetNavigationState(ShellItem shellItem, ShellSection shellSection, ShellContent shellContent, IReadOnlyList<Page> sectionStack)
+		ShellNavigationState GetNavigationState(ShellItem shellItem, ShellSection shellSection, ShellContent shellContent, IReadOnlyList<Page> sectionStack, IReadOnlyList<Page> modalStack)
 		{
 			StringBuilder stateBuilder = new StringBuilder($"//");
 			Dictionary<string, string> queryData = new Dictionary<string, string>();
@@ -568,6 +578,28 @@ namespace Xamarin.Forms
 							stateBuilder.Append(Routing.GetRoute(page));
 							if (i < sectionStack.Count - 1)
 								stateBuilder.Append("/");
+						}
+					}
+
+					if (modalStack != null && modalStack.Count > 0)
+					{
+						if (!stackAtRoot && sectionStack.Count > 0)
+							stateBuilder.Append("/");
+
+						for (int i = 0; i < modalStack.Count; i++)
+						{
+							var topPage = modalStack[i];
+
+							if(i > 0)
+								stateBuilder.Append("/");
+
+							stateBuilder.Append(Routing.GetRoute(topPage));
+
+							for (int j = 1; j < topPage.Navigation.NavigationStack.Count; j++)
+							{
+								stateBuilder.Append("/");
+								stateBuilder.Append(Routing.GetRoute(topPage.Navigation.NavigationStack[j]));
+							}
 						}
 					}
 				}
