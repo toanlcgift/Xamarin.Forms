@@ -245,16 +245,11 @@ namespace Xamarin.Forms
 			return (ShellSection)(ShellContent)page;
 		}
 
-
-		Page navPage = null;
-		List<Page> navStack = null;
-		string route = String.Empty;
-
 		internal async Task GoToAsync(NavigationRequest request, IDictionary<string, string> queryData, bool animate)
 		{
 			List<string> globalRoutes = request.Request.GlobalRoutes;
-			navStack = null;
-			route = String.Empty;
+			List<Page> navStack = null;
+			string route = String.Empty;
 
 			if (globalRoutes == null || globalRoutes.Count == 0)
 			{
@@ -270,7 +265,7 @@ namespace Xamarin.Forms
 				if (request.StackRequest == NavigationRequest.WhatToDoWithTheStack.ReplaceIt)
 				{
 					navStack = BuildFlattenedNavigationStack(new List<Page>(_navStack), Navigation?.ModalStack);
-					navPage = navStack.Count > i + 1 ? navStack[i + 1] : null;
+					Page navPage = navStack.Count > i + 1 ? navStack[i + 1] : null;
 
 					if (navPage != null)
 					{
