@@ -11,16 +11,6 @@ namespace Xamarin.Forms.Core.UnitTests
 	public class ShellModalTests : ShellTestBase
 	{
 		[Test]
-		public async Task ModalBehaviorNeverNullTests()
-		{
-			ContentPage page = new ContentPage();
-			Assert.IsNotNull(Shell.GetModalBehavior(page));
-			Shell.SetModalBehavior(page, null);
-			Assert.IsNotNull(Shell.GetModalBehavior(page));
-		}
-
-
-		[Test]
 		public async Task BasicModalBehaviorTest()
 		{
 			Shell shell = new Shell();

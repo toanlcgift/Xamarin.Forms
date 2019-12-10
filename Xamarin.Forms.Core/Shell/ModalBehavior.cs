@@ -6,6 +6,8 @@ namespace Xamarin.Forms
 {
 	public class ModalBehavior : BindableObject
 	{
+		static ModalBehavior _defaultModalBehavior;
+
 		public static readonly BindableProperty ModalProperty =
 			BindableProperty.Create(nameof(Modal), typeof(bool), typeof(ModalBehavior), true);
 
@@ -24,6 +26,15 @@ namespace Xamarin.Forms
 			set => SetValue(AnimatedProperty, value);
 		}
 
-		internal static ModalBehavior CreateDefault() => new ModalBehavior() { Modal = false };
+		internal static ModalBehavior Default
+		{
+			get
+			{
+				if (_defaultModalBehavior == null)
+					_defaultModalBehavior = new ModalBehavior() { Modal = false };
+
+				return _defaultModalBehavior;
+			}
+		}
 	}
 }

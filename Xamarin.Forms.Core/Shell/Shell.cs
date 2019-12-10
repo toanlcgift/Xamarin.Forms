@@ -26,15 +26,7 @@ namespace Xamarin.Forms
 		}
 
 		public static readonly BindableProperty ModalBehaviorProperty =
-			BindableProperty.CreateAttached("ModalBehavior", typeof(ModalBehavior), typeof(Shell), ModalBehavior.CreateDefault(), BindingMode.OneTime, propertyChanged: OnModalBehaviorPropertyChanged, coerceValue: OnCoerceModalBehaviorProperty);
-
-		static object OnCoerceModalBehaviorProperty(BindableObject bindable, object value)
-		{
-			if (value == null)
-				return ModalBehavior.CreateDefault();
-
-			return value;
-		}
+			BindableProperty.CreateAttached("ModalBehavior", typeof(ModalBehavior), typeof(Shell), null, BindingMode.OneTime, propertyChanged: OnModalBehaviorPropertyChanged);
 
 		static void OnModalBehaviorPropertyChanged(BindableObject bindable, object oldValue, object newValue)
 		{

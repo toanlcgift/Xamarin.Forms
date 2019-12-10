@@ -223,9 +223,6 @@ namespace Xamarin.Forms
 
 			if (Shell.GetTitleView(this) is View titleView)
 				SetInheritedBindingContext(titleView, BindingContext);
-
-			if (Shell.GetModalBehavior(this) is ModalBehavior modalBehavior)
-				SetInheritedBindingContext(modalBehavior, BindingContext);
 		}
 
 		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)

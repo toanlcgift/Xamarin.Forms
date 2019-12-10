@@ -502,7 +502,7 @@ namespace Xamarin.Forms
 
 		protected virtual Task OnPushAsync(Page page, bool animated)
 		{
-			var modalBehavior = Shell.GetModalBehavior(page);
+			var modalBehavior = Shell.GetModalBehavior(page) ?? ModalBehavior.Default;
 
 			if(modalBehavior.Modal)
 			{
