@@ -47,6 +47,14 @@ namespace Xamarin.Forms
 		{
 			get
 			{
+				if (Navigation.ModalStack.Count > 0)
+				{
+					if (Navigation.ModalStack[Navigation.ModalStack.Count - 1] is NavigationPage np)
+						return np.Navigation.NavigationStack[np.Navigation.NavigationStack.Count - 1];
+
+					return Navigation.ModalStack[0];
+				}
+				
 				if (_navStack.Count > 1)
 					return _navStack[_navStack.Count - 1];
 				return ((IShellContentController)CurrentItem)?.Page;
@@ -257,14 +265,23 @@ namespace Xamarin.Forms
 				return;
 			}
 
-			for (int i = 0; i < globalRoutes.Count; i++)
+			int whereToStartNavigation = 0;
+			
+			// Pop the stack down to where it no longer matches 
+			if (request.StackRequest == NavigationRequest.WhatToDoWithTheStack.ReplaceIt)
 			{
-				bool isLast = i == globalRoutes.Count - 1;
-				route = globalRoutes[i];
-
-				if (request.StackRequest == NavigationRequest.WhatToDoWithTheStack.ReplaceIt)
+				for (int i = 0; i < globalRoutes.Count; i++)
 				{
+					whereToStartNavigation = i;
+					bool isLast = i == globalRoutes.Count - 1;
+					route = globalRoutes[i];
+					
 					navStack = BuildFlattenedNavigationStack(new List<Page>(_navStack), Navigation?.ModalStack);
+					
+					// if the navStack count is one that means there is nothing pushed
+					if (navStack.Count == 1)
+						break;
+					
 					Page navPage = navStack.Count > i + 1 ? navStack[i + 1] : null;
 
 					if (navPage != null)
@@ -274,30 +291,92 @@ namespace Xamarin.Forms
 							Shell.ApplyQueryAttributes(navPage, queryData, isLast);
 							continue;
 						}
-
-						if (request.StackRequest == NavigationRequest.WhatToDoWithTheStack.ReplaceIt)
+						
+						while (navStack.Count > i + 1)
 						{
-							while (navStack.Count > i + 1)
-							{
-								if (Navigation.ModalStack.Contains(navStack[navStack.Count - 1]))
-									await Navigation.PopModalAsync(false);
-								else if (Navigation.ModalStack.Count > 0)
-									await Navigation.ModalStack[Navigation.ModalStack.Count - 1].Navigation.PopAsync(false);
-								else
-									await OnPopAsync(false);
+							if (Navigation.ModalStack.Contains(navStack[navStack.Count - 1]))
+								await Navigation.PopModalAsync(false);
+							else if (Navigation.ModalStack.Count > 0)
+								await Navigation.ModalStack[Navigation.ModalStack.Count - 1].Navigation.PopAsync(false);
+							else
+								await OnPopAsync(false);
 
-								navStack = BuildFlattenedNavigationStack(new List<Page>(_navStack), Navigation?.ModalStack);
-							}
+							navStack = BuildFlattenedNavigationStack(new List<Page>(_navStack), Navigation?.ModalStack);
 						}
+
+						break;
+					}
+
+					var content = Routing.GetOrCreateContent(route) as Page;
+					if (content == null)
+						break;
+
+					Shell.ApplyQueryAttributes(content, queryData, isLast);
+				}
+			}
+			
+			
+			{
+				List<Page> modalPageStacks = new List<Page>();
+				List<Page> nonModalPageStacks = new List<Page>();
+
+				if (Navigation?.ModalStack?.Count > 0)
+					modalPageStacks.AddRange(Navigation.ModalStack);
+
+				// populate global routes and build modal stacks
+				for (int i = whereToStartNavigation; i < globalRoutes.Count; i++)
+				{
+					bool isLast = i == globalRoutes.Count - 1;
+					route = globalRoutes[i];
+					var content = Routing.GetOrCreateContent(route) as Page;
+					if (content == null)
+						break;
+
+					Shell.ApplyQueryAttributes(content, queryData, isLast);
+
+					var modalBehavior = Shell.GetModalBehavior(content) ?? ModalBehavior.Default;
+
+					if (modalBehavior.Modal)
+					{
+						Page pageToPush = content;
+						if (pageToPush is ContentPage)
+						{
+							if (pageToPush.ToolbarItems.Count == 0)
+								NavigationPage.SetHasNavigationBar(pageToPush, false);
+
+							pageToPush = new NavigationPage(pageToPush);
+							Routing.SetRoute(pageToPush, Routing.GetRoute(content));
+						}
+
+						modalPageStacks.Add(pageToPush);
+					}
+					else if (modalPageStacks.Count > 0)
+					{
+						if (modalPageStacks[modalPageStacks.Count - 1] is NavigationPage navigationPage)
+							await navigationPage.Navigation.PushAsync(content);
+						else
+							throw new InvalidOperationException($"Shell cannot push a page to the following type: {modalPageStacks[modalPageStacks.Count - 1]}. The visible modal page needs to be a ContentPage or a NavigationPage");
+					}
+					else
+					{
+						nonModalPageStacks.Add(content);
 					}
 				}
 
-				var content = Routing.GetOrCreateContent(route) as Page;
-				if (content == null)
-					break;
+				for (int i = Navigation.ModalStack.Count; i < modalPageStacks.Count; i++)
+				{
+					await Navigation.PushModalAsync(modalPageStacks[i]);
+				}
 
-				Shell.ApplyQueryAttributes(content, queryData, isLast);
-				await OnPushAsync(content, i == globalRoutes.Count - 1 && animate);
+				for (int i = nonModalPageStacks.Count - 1; i >= 0; i--)
+				{
+					bool isLast = i == nonModalPageStacks.Count - 1;
+					
+					if(isLast)
+						await OnPushAsync(nonModalPageStacks[i], animate);
+					else
+						Navigation.InsertPageBefore(nonModalPageStacks[i], nonModalPageStacks[nonModalPageStacks.Count - 1]);
+				}
 			}
 
 			if (Parent?.Parent is IShellController shell)
@@ -502,32 +581,6 @@ namespace Xamarin.Forms
 
 		protected virtual Task OnPushAsync(Page page, bool animated)
 		{
-			var modalBehavior = Shell.GetModalBehavior(page) ?? ModalBehavior.Default;
-
-			if(modalBehavior.Modal)
-			{
-				Page pageToPush = page;
-				if(pageToPush is ContentPage)
-				{
-					if(pageToPush.ToolbarItems.Count == 0)
-						NavigationPage.SetHasNavigationBar(pageToPush, false);
-
-					pageToPush = new NavigationPage(pageToPush);
-					Routing.SetRoute(pageToPush, Routing.GetRoute(page));
-				}
-
-				return Navigation.PushModalAsync(pageToPush, modalBehavior.Animated);
-			}
-			else if (Navigation?.ModalStack?.Count > 0)
-			{
-				if(Navigation.ModalStack[Navigation.ModalStack.Count - 1] is NavigationPage navigationPage)
-				{
-					return navigationPage.PushAsync(page);
-				}
-
-				throw new InvalidOperationException($"Shell cannot push a page to the following type: {Navigation.ModalStack[Navigation.ModalStack.Count - 1]}. The visible modal page needs to be a ContentPage or a NavigationPage");
-			}
-
 			List<Page> stack = _navStack.ToList();
 			stack.Add(page);
 			var allow = ((IShellController)Shell).ProposeNavigation(

@@ -158,7 +158,6 @@ namespace Xamarin.Forms.Core.UnitTests
 		[Test]
 		public async Task SwitchingModalStackAbsoluteNavigation()
 		{
-			Routing.RegisterRoute("ContentPage", typeof(ContentPage));
 			Shell shell = new Shell();
 			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute", shellSectionRoute: "Section", shellContentRoute: "Content"));
 
@@ -189,8 +188,9 @@ namespace Xamarin.Forms.Core.UnitTests
 			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute", shellSectionRoute: "Section", shellContentRoute: "Content"));
 
 			await shell.GoToAsync("ModalTestPage");
+			Assert.AreEqual("//NewRoute/Section/Content/ModalTestPage", shell.CurrentState.Location.ToString());
+			
 			await shell.GoToAsync("ModalTestPage");
-
 			Assert.AreEqual("//NewRoute/Section/Content/ModalTestPage/ModalTestPage", shell.CurrentState.Location.ToString());
 		}
 
@@ -216,8 +216,24 @@ namespace Xamarin.Forms.Core.UnitTests
 
 			Assert.IsTrue(invalidOperationThrown);
 		}
+		
+		[Test]
+		public async Task IsAppearingFiredOnLastModalPageOnly()
+		{
+			Shell shell = new Shell();
+			shell.Items.Add(CreateShellItem(shellItemRoute: "NewRoute", shellSectionRoute: "Section", shellContentRoute: "Content"));
 
-		public class ModalTestPage : ContentPage
+			await shell.GoToAsync("ModalTestPage/ModalTestPage2");
+
+			var page1 = (ShellLifeCycleTests.LifeCyclePage)shell.Navigation.ModalStack[0].Navigation.NavigationStack[0];
+			var page2 = (ShellLifeCycleTests.LifeCyclePage)shell.Navigation.ModalStack[1].Navigation.NavigationStack[0];
+
+			Assert.IsFalse(page1.Appearing);
+			Assert.IsTrue(page2.Appearing);
+		}
+		
+
+		public class ModalTestPage : ShellLifeCycleTests.LifeCyclePage
 		{
 			public ModalTestPage()
 			{
@@ -225,7 +241,7 @@ namespace Xamarin.Forms.Core.UnitTests
 			}
 		}
 
-		public class ModalTestPage2 : ContentPage
+		public class ModalTestPage2 : ShellLifeCycleTests.LifeCyclePage
 		{
 			public ModalTestPage2()
 			{
@@ -247,6 +263,8 @@ namespace Xamarin.Forms.Core.UnitTests
 			Routing.RegisterRoute("ModalTestPage", typeof(ModalTestPage));
 			Routing.RegisterRoute("ModalTestPage2", typeof(ModalTestPage2));
 			Routing.RegisterRoute("SomeCustomPage", typeof(SomeCustomPage));
+			Routing.RegisterRoute("ContentPage", typeof(ContentPage));
+			Routing.RegisterRoute("LifeCyclePage", typeof(ShellLifeCycleTests.LifeCyclePage));
 		}
 	}
 }

@@ -425,9 +425,16 @@ namespace Xamarin.Forms
 			var shellItem = navigationRequest.Request.Item;
 			var shellSection = navigationRequest.Request.Section;
 			var currentShellSection = CurrentItem?.CurrentItem;
-
+			var nextActiveSection = shellSection ?? shellItem?.CurrentItem;
+			
 			ShellContent shellContent = navigationRequest.Request.Content;
 
+			// If we're replacing the whole stack and there are global routes then build the navigation stack before setting the shell section visible
+			if (navigationRequest.Request.GlobalRoutes.Count > 0 && nextActiveSection != null && navigationRequest.StackRequest == NavigationRequest.WhatToDoWithTheStack.ReplaceIt)
+			{
+				await nextActiveSection.GoToAsync(navigationRequest, queryData, false);
+			}
+			
 			if (shellItem != null)
 			{
 				ApplyQueryAttributes(shellItem, queryData, navigationRequest.Request.Section == null);
@@ -472,7 +479,7 @@ namespace Xamarin.Forms
 					}
 				}
 
-				if (navigationRequest.Request.GlobalRoutes.Count > 0)
+				if (navigationRequest.Request.GlobalRoutes.Count > 0 && navigationRequest.StackRequest != NavigationRequest.WhatToDoWithTheStack.ReplaceIt)
 				{
 					// TODO get rid of this hack and fix so if there's a stack the current page doesn't display
 					Device.BeginInvokeOnMainThread(async () =>
