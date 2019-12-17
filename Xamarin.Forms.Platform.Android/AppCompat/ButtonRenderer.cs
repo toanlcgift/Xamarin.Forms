@@ -220,7 +220,7 @@ namespace Xamarin.Forms.Platform.Android.AppCompat
 			remove => ((IVisualElementRenderer)this).ElementChanged -= value;
 		}
 
-		AButton IButtonLayoutRenderer.View => Control;
+		AppCompatButton IButtonLayoutRenderer.View => Control;
 		bool IDisposedState.IsDisposed => _isDisposed;
 	}
 }
