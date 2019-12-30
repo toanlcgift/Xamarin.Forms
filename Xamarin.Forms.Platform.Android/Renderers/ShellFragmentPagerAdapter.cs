@@ -15,8 +15,11 @@ namespace Xamarin.Forms.Platform.Android
 	{
 		bool _disposed;
 		ShellSection _shellSection;
-
+#if __ANDROID_29__
+		public ShellFragmentPagerAdapter(ShellSection shellSection, FragmentManager fragmentManager) : base(fragmentManager, FragmentStatePagerAdapter.BehaviorResumeOnlyCurrentFragment)
+#else
 		public ShellFragmentPagerAdapter(ShellSection shellSection, FragmentManager fragmentManager) : base(fragmentManager)
+#endif
 		{
 			_shellSection = shellSection;
 			((INotifyCollectionChanged)shellSection.Items).CollectionChanged += OnItemsCollectionChanged;
