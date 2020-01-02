@@ -30,4 +30,7 @@
     <ProjectReference Include="..\Xamarin.Forms.Platform.Android\Xamarin.Forms.Platform.Android.csproj">
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Xamarin.Build.TypeRedirector" Version="0.1.1-preview" PrivateAssets="all" />
+  </ItemGroup>
 </Project>

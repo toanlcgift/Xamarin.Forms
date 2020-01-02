@@ -29,16 +29,34 @@ steps:
     condition: ne(variables['NUGET_VERSION'], '')
     inputs:
       versionSpec: $(NUGET_VERSION)
+  
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download build artifact nuget'
+    condition: eq(variables['UseNugets'], 'true')
+    inputs:
+      artifactName: 'nuget'
+      downloadPath: '$(Build.ArtifactsDirectory)'
+
+  - task: CopyFiles@2
+    displayName: 'Copy Files to: $(System.DefaultWorkingDirectory)'
+    condition: eq(variables['UseNugets'], 'true')
+    inputs:
+      SourceFolder: '$(Build.ArtifactsDirectory)/nuget/$(buildConfiguration)'
+      TargetFolder: '$(System.DefaultWorkingDirectory)/Nuget'
 
   - task: NuGetCommand@2
     displayName: 'NuGet restore'
     inputs:
-      restoreSolution: $(slnPath)
+      command: restore
+      restoreSolution: 'Xamarin.Forms.sln'
+      feedsToUse: config
+      nugetConfigPath: 'DevopsNuget.config'
 
   - task: MSBuild@1
     displayName: 'Build solution Xamarin.Forms.Build.Tasks/Xamarin.Forms.Build.Tasks.csproj'
     inputs:
       solution: Xamarin.Forms.Build.Tasks/Xamarin.Forms.Build.Tasks.csproj
+      msbuildArguments: /bl:$(Build.ArtifactStagingDirectory)/tasks.binlog
 
   - task: InstallAppleCertificate@2
     displayName: 'Install an Apple certificate'
@@ -52,11 +70,11 @@ steps:
       provProfileSecureFile: 'Xamarin Forms iOS Provisioning.mobileprovision'
 
   - task: XamariniOS@2
-    displayName: 'Build Xamarin.iOS solution $(slnPath)'
+    displayName: 'Build Xamarin.iOS solution $(slnPath) '
     inputs:
       solutionFile: $(slnPath)
       configuration: $(buildConfiguration)
-
+      args: /bl:$(Build.ArtifactStagingDirectory)/ios.binlog
 
   - task: CopyFiles@2
     displayName: 'Copy test-cloud.exe'
@@ -91,6 +109,7 @@ steps:
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: iOS'
+    condition: always()
     inputs:
       PathtoPublish: '$(build.artifactstagingdirectory)'
       ArtifactName: OSXArtifacts

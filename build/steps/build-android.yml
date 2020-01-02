@@ -60,11 +60,27 @@ jobs:
         condition: ne(variables['NUGET_VERSION'], '')
         inputs:
           versionSpec: $(NUGET_VERSION)
+  
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download build artifact nuget'
+        condition: eq(variables['UseNugets'], 'true')
+        inputs:
+          artifactName: 'nuget'
+          downloadPath: 'Nuget'
+
+      - task: CopyFiles@2
+        displayName: 'Copy Files to: $(System.DefaultWorkingDirectory)'
+        condition: eq(variables['UseNugets'], 'true')
+        inputs:
+          SourceFolder: 'Nuget/nuget/${{ parameters.buildConfiguration }}'
+          TargetFolder: 'Nuget'
 
       - task: NuGetCommand@2
         displayName: 'NuGet restore ${{ parameters.slnPath }}'
         inputs:
           restoreSolution:  ${{ parameters.slnPath }}
+          feedsToUse: config
+          nugetConfigPath: 'DevopsNuget.config'
 
       - task: MSBuild@1
         displayName: 'Build ${{ parameters.buildTaskPath  }}'
@@ -97,6 +113,7 @@ jobs:
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: AndroidApps'
+        condition: always()
         inputs:
           PathtoPublish: '$(build.artifactstagingdirectory)'
           ArtifactName: OSXArtifacts
