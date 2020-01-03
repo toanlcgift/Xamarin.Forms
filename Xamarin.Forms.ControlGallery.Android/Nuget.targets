@@ -1,4 +1,5 @@
 <Project>
+  <Import Project="..\Nuget.targets" Condition="'$(FromSource)' == 'false'" />
   <ItemGroup>
     <PackageReference Include="Xamarin.Forms.AppLinks" Version="$(XamarinFormsVersion)">
     </PackageReference>
