@@ -107,6 +107,8 @@ stages:
       dependsOn: windows
     ${{ if eq(variables.UseNugets, 'false') }}:
       dependsOn: []
+    ${{ if eq(variables.UseNugets, '') }}:
+      dependsOn: []
     jobs:   
       - template: build/steps/build-android.yml
         parameters:
@@ -143,6 +145,8 @@ stages:
     ${{ if eq(variables.UseNugets, 'true') }}:
       dependsOn: windows
     ${{ if eq(variables.UseNugets, 'false') }}:
+      dependsOn: []
+    ${{ if eq(variables.UseNugets, '') }}:
       dependsOn: []
     jobs:
       - job: osx
