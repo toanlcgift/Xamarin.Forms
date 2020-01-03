@@ -103,9 +103,9 @@ stages:
 
   - stage: android
     displayName: Build Android
-    ${{ if eq('System.TeamProject'], 'devdiv') }}:
+    ${{ if eq(variables['System.TeamProject'], 'devdiv') }}:
       dependsOn: windows
-    ${{ if eq('System.TeamProject'], 'public') }}:
+    ${{ if eq(variables['System.TeamProject'], 'public') }}:
       dependsOn: []
     jobs:   
       - template: build/steps/build-android.yml
@@ -140,9 +140,9 @@ stages:
 
   - stage: build_osx
     displayName: Build OSX
-    ${{ if eq('System.TeamProject'], 'devdiv') }}:
+    ${{ if eq(variables['System.TeamProject'], 'devdiv') }}:
       dependsOn: windows
-    ${{ if eq('System.TeamProject'], 'public') }}:
+    ${{ if eq(variables['System.TeamProject'], 'public') }}:
       dependsOn: []
     jobs:
       - job: osx
