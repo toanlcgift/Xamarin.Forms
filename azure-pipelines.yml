@@ -101,73 +101,125 @@ stages:
       steps:
         - template: build/steps/build-nuget.yml
 
-  - stage: android
-    displayName: Build Android
-    ${{ if eq(variables.UseNugets, 'true') }}:
+  - ${{ if eq(variables.UseNugets, '') }}:
+    - stage: android
+      displayName: Build Android
+      dependsOn: []
+      jobs:   
+        - template: build/steps/build-android.yml
+          parameters:
+            name: android_legacy
+            displayName: Build Android [Legacy Renderers]
+            vmImage: $(macOSVmImage)
+            targetFolder: Xamarin.Forms.ControlGallery.Android/legacyRenderers/
+            androidProjectArguments: '/t:"Rebuild;SignAndroidPackage" /bl:$(Build.ArtifactStagingDirectory)/android-legacy.binlog'
+            buildConfiguration: $(DefaultBuildConfiguration)
+            provisionatorPath : 'build/provisioning/provisioning.csx'
+
+        - template: build/steps/build-android.yml
+          parameters:
+            name: android_preappcompact
+            displayName: Build Android [Pre-AppCompat]
+            vmImage: $(macOSVmImage)
+            targetFolder: Xamarin.Forms.ControlGallery.Android/preAppCompat
+            androidProjectArguments: '/t:"Rebuild;SignAndroidPackage" /p:DefineConstants="TRACE DEBUG FORMS_APPLICATION_ACTIVITY APP" /bl:$(Build.ArtifactStagingDirectory)/android-preappcompact.binlog'
+            buildConfiguration: $(DefaultBuildConfiguration)
+            provisionatorPath : 'build/provisioning/provisioning.csx'
+
+        - template: build/steps/build-android.yml
+          parameters:
+            name: android_fast
+            displayName: Build Android [Fast Renderers]
+            vmImage: $(macOSVmImage)
+            targetFolder: Xamarin.Forms.ControlGallery.Android/newRenderers/
+            androidProjectArguments: '/t:"Rebuild;SignAndroidPackage" /p:DefineConstants="TRACE DEBUG TEST_EXPERIMENTAL_RENDERERS APP" /bl:$(Build.ArtifactStagingDirectory)/android-newrenderers.binlog'
+            buildConfiguration: $(DefaultBuildConfiguration)
+            provisionatorPath : 'build/provisioning/provisioning.csx'
+
+  - ${{ if eq(variables.UseNugets, 'true') }}:
+    - stage: android
+      displayName: Build Android
       dependsOn: windows
-    ${{ if eq(variables.UseNugets, 'false') }}:
+      jobs:   
+        - template: build/steps/build-android.yml
+          parameters:
+            name: android_legacy
+            displayName: Build Android [Legacy Renderers]
+            vmImage: $(macOSVmImage)
+            targetFolder: Xamarin.Forms.ControlGallery.Android/legacyRenderers/
+            androidProjectArguments: '/t:"Rebuild;SignAndroidPackage" /bl:$(Build.ArtifactStagingDirectory)/android-legacy.binlog'
+            buildConfiguration: $(DefaultBuildConfiguration)
+            provisionatorPath : 'build/provisioning/provisioning.csx'
+
+        - template: build/steps/build-android.yml
+          parameters:
+            name: android_preappcompact
+            displayName: Build Android [Pre-AppCompat]
+            vmImage: $(macOSVmImage)
+            targetFolder: Xamarin.Forms.ControlGallery.Android/preAppCompat
+            androidProjectArguments: '/t:"Rebuild;SignAndroidPackage" /p:DefineConstants="TRACE DEBUG FORMS_APPLICATION_ACTIVITY APP" /bl:$(Build.ArtifactStagingDirectory)/android-preappcompact.binlog'
+            buildConfiguration: $(DefaultBuildConfiguration)
+            provisionatorPath : 'build/provisioning/provisioning.csx'
+
+        - template: build/steps/build-android.yml
+          parameters:
+            name: android_fast
+            displayName: Build Android [Fast Renderers]
+            vmImage: $(macOSVmImage)
+            targetFolder: Xamarin.Forms.ControlGallery.Android/newRenderers/
+            androidProjectArguments: '/t:"Rebuild;SignAndroidPackage" /p:DefineConstants="TRACE DEBUG TEST_EXPERIMENTAL_RENDERERS APP" /bl:$(Build.ArtifactStagingDirectory)/android-newrenderers.binlog'
+            buildConfiguration: $(DefaultBuildConfiguration)
+            provisionatorPath : 'build/provisioning/provisioning.csx'
+
+  - ${{ if eq(variables.UseNugets, '') }}:
+    - stage: build_osx
+      displayName: Build OSX
       dependsOn: []
-    ${{ if eq(variables.UseNugets, '') }}:
-      dependsOn: []
-    jobs:   
-      - template: build/steps/build-android.yml
-        parameters:
-          name: android_legacy
-          displayName: Build Android [Legacy Renderers]
-          vmImage: $(macOSVmImage)
-          targetFolder: Xamarin.Forms.ControlGallery.Android/legacyRenderers/
-          androidProjectArguments: '/t:"Rebuild;SignAndroidPackage" /bl:$(Build.ArtifactStagingDirectory)/android-legacy.binlog'
-          buildConfiguration: $(DefaultBuildConfiguration)
-          provisionatorPath : 'build/provisioning/provisioning.csx'
+      jobs:
+        - job: osx
+          displayName: OSX Phase
+          pool:
+            name: $(macOSVmImage)
+            demands:
+              - Agent.OS -equals darwin
+              - sh
+              - msbuild
+              - Xamarin.iOS
+          variables:
+            provisionator.osxPath : 'build/provisioning/provisioning.csx'
+            provisionator.signPath : 'build/provisioning/provisioning_sign.csx'
+            buildConfiguration: $(DefaultBuildConfiguration)
+            slnPath: $(SolutionFile)
+            iOSCertSecureFileName: 'Xamarin Forms iOS Certificate.p12'
+            iOSProvisioningSecureFileName: 'Xamarin Forms iOS Provisioning.mobileprovision'
+            monoVersion : $(MONO_VERSION)
+          steps:
+            - template: build/steps/build-osx.yml
 
-      - template: build/steps/build-android.yml
-        parameters:
-          name: android_preappcompact
-          displayName: Build Android [Pre-AppCompat]
-          vmImage: $(macOSVmImage)
-          targetFolder: Xamarin.Forms.ControlGallery.Android/preAppCompat
-          androidProjectArguments: '/t:"Rebuild;SignAndroidPackage" /p:DefineConstants="TRACE DEBUG FORMS_APPLICATION_ACTIVITY APP" /bl:$(Build.ArtifactStagingDirectory)/android-preappcompact.binlog'
-          buildConfiguration: $(DefaultBuildConfiguration)
-          provisionatorPath : 'build/provisioning/provisioning.csx'
-
-      - template: build/steps/build-android.yml
-        parameters:
-          name: android_fast
-          displayName: Build Android [Fast Renderers]
-          vmImage: $(macOSVmImage)
-          targetFolder: Xamarin.Forms.ControlGallery.Android/newRenderers/
-          androidProjectArguments: '/t:"Rebuild;SignAndroidPackage" /p:DefineConstants="TRACE DEBUG TEST_EXPERIMENTAL_RENDERERS APP" /bl:$(Build.ArtifactStagingDirectory)/android-newrenderers.binlog'
-          buildConfiguration: $(DefaultBuildConfiguration)
-          provisionatorPath : 'build/provisioning/provisioning.csx'
-
-  - stage: build_osx
-    displayName: Build OSX
-    ${{ if eq(variables.UseNugets, 'true') }}:
+  - ${{ if eq(variables.UseNugets, 'true') }}:
+    - stage: build_osx
+      displayName: Build OSX
       dependsOn: windows
-    ${{ if eq(variables.UseNugets, 'false') }}:
-      dependsOn: []
-    ${{ if eq(variables.UseNugets, '') }}:
-      dependsOn: []
-    jobs:
-      - job: osx
-        displayName: OSX Phase
-        pool:
-          name: $(macOSVmImage)
-          demands:
-            - Agent.OS -equals darwin
-            - sh
-            - msbuild
-            - Xamarin.iOS
-        variables:
-          provisionator.osxPath : 'build/provisioning/provisioning.csx'
-          provisionator.signPath : 'build/provisioning/provisioning_sign.csx'
-          buildConfiguration: $(DefaultBuildConfiguration)
-          slnPath: $(SolutionFile)
-          iOSCertSecureFileName: 'Xamarin Forms iOS Certificate.p12'
-          iOSProvisioningSecureFileName: 'Xamarin Forms iOS Provisioning.mobileprovision'
-          monoVersion : $(MONO_VERSION)
-        steps:
-          - template: build/steps/build-osx.yml
+      jobs:
+        - job: osx
+          displayName: OSX Phase
+          pool:
+            name: $(macOSVmImage)
+            demands:
+              - Agent.OS -equals darwin
+              - sh
+              - msbuild
+              - Xamarin.iOS
+          variables:
+            provisionator.osxPath : 'build/provisioning/provisioning.csx'
+            provisionator.signPath : 'build/provisioning/provisioning_sign.csx'
+            buildConfiguration: $(DefaultBuildConfiguration)
+            slnPath: $(SolutionFile)
+            iOSCertSecureFileName: 'Xamarin Forms iOS Certificate.p12'
+            iOSProvisioningSecureFileName: 'Xamarin Forms iOS Provisioning.mobileprovision'
+            monoVersion : $(MONO_VERSION)
+          steps:
+            - template: build/steps/build-osx.yml
 
   # only sign using the private server
   - ${{ if eq(variables['System.TeamProject'], 'devdiv') }}:
